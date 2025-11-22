@@ -1,188 +1,198 @@
-# Classifier Model Interpreter - Technical Specification
+# Classifier Model Interpreter - Technical Specification v2.0
 
-**Version**: 1.0
+**Version**: 2.0 (Streamlined)
 **Date**: 2025-11-22
-**Status**: Draft for Review
+**Status**: Ready for Implementation
 
 ---
 
 ## Executive Summary
 
-This specification defines a **Model Interpretation Package** that translates complex machine learning predictions into clear, actionable business insights. The system focuses on three core capabilities:
+A **focused Model Interpretation Package** that provides clear, global-scale insights into classifier behavior through SHAP analysis. Designed for exploratory analysis and segment-level understanding, not production deployment or instance-by-instance vetting.
 
-1. **Visual Clarity**: Intuitive visualizations showing how features drive predictions
-2. **Categorical Handling**: Proper treatment of categorical variables in explanations
-3. **Business Translation**: Converting SHAP outputs into actionable recommendations
+### Core Philosophy
 
-**Target Use Case**: Customer conversion models, credit risk, churn prediction, and similar classification problems.
+1. **Global Over Local**: Understand model patterns, not individual predictions
+2. **Segments Over Instances**: Analyze customer groups, not one-offs
+3. **Simplicity Over Features**: Reusable functions, not complex systems
+4. **Warnings Over Errors**: Alert users to issues, don't block analysis
+5. **Notebooks Over Dashboards**: Interactive exploration, not static reports
 
 ---
 
 ## Table of Contents
 
-1. [Project Goals](#1-project-goals)
-2. [Core Architecture](#2-core-architecture)
+1. [Scope & Focus](#1-scope--focus)
+2. [Core Capabilities](#2-core-capabilities)
 3. [Package Dependencies](#3-package-dependencies)
 4. [Module Structure](#4-module-structure)
 5. [Key Features](#5-key-features)
-6. [Visualization Components](#6-visualization-components)
-7. [Business Translation Layer](#7-business-translation-layer)
-8. [Implementation Phases](#8-implementation-phases)
+6. [Categorical Handling](#6-categorical-handling)
+7. [Segment Analysis](#7-segment-analysis)
+8. [Implementation Plan](#8-implementation-plan)
 9. [Usage Examples](#9-usage-examples)
 10. [Testing Strategy](#10-testing-strategy)
-11. [Open Questions](#11-open-questions)
 
 ---
 
-## 1. Project Goals
+## 1. Scope & Focus
 
-### Primary Objectives
+### In Scope ✅
 
-**Goal 1: Clear Feature Impact Visualization**
-- Show how each feature drives predictions (positive/negative direction)
-- Display magnitude of effects (quantified impact)
-- Handle both continuous and categorical variables seamlessly
-- Support global (model-wide) and local (single prediction) explanations
+**Global Model Understanding**
+- Overall feature importance across all predictions
+- Segment-level patterns (e.g., professionals vs students)
+- Feature interactions and dependencies
+- Model performance context
 
-**Goal 2: Categorical Variable Excellence**
-- Automatically detect categorical features
-- Group one-hot encoded variables back to original categories
-- Visualize categories with meaningful labels (not dummy indicators)
-- Show category-level importance and effects
+**Visualization Focus**
+- In-line plots in Jupyter notebooks
+- Matplotlib and Plotly figures
+- Interactive exploration (not static dashboards)
+- Easy to save/export individual charts
 
-**Goal 3: Actionable Business Insights**
-- Translate SHAP values into plain English recommendations
-- Generate "what-if" scenarios (e.g., "If we lower price by 10%, conversion increases by 5%")
-- Identify levers (controllable features) vs. constraints (non-controllable features)
-- Create executive summaries and detailed technical reports
+**Data Handling**
+- Categorical variable aggregation (sum SHAP values, no one-hot)
+- Sampling for large datasets (1-2k instances)
+- Warnings for data issues (not errors)
+- Works with clean, prepared data
 
-### Success Criteria
+**Model Support**
+- Sklearn-compatible classifiers
+- Tree-based models (XGBoost, LightGBM, CatBoost)
+- Linear models (LogisticRegression)
+- Reusable across model types
 
-- [ ] Non-technical stakeholders can understand model decisions without training
-- [ ] Visualizations load in <5 seconds for datasets with 5,000 rows
-- [ ] Categorical variables display as original categories, not dummy variables
-- [ ] Business narratives accurately reflect SHAP value interpretations
-- [ ] System works with sklearn, XGBoost, LightGBM, CatBoost models
+### Out of Scope ❌
 
-### Non-Goals (Out of Scope)
+**Not Building**
+- Web dashboards or applications
+- HTML/PDF report generation
+- API integrations or microservices
+- Real-time prediction explanations
+- Automated validation pipelines
+- LIME or alternative explainers
+- Deep instance-level analysis
+- Production deployment features
 
-- Deep learning / neural network interpretation (focus on tree-based and linear models)
-- Real-time streaming explanations
-- Automated retraining based on insights
-- Causal inference (correlation ≠ causation)
-- Multi-model ensemble interpretation
+**Assumptions**
+- Data is generally clean and correct
+- Users will validate inputs themselves
+- Focus on exploration, not production
+- Testing via notebooks, not unit tests
+- Users understand basic ML concepts
 
 ---
 
-## 2. Core Architecture
+## 2. Core Capabilities
 
-### Design Principles
+### Capability 1: Global Feature Importance
 
-1. **Separation of Concerns**: Computation ↔ Visualization ↔ Business Logic
-2. **Model Agnostic**: Works with any sklearn-compatible classifier
-3. **Extensibility**: Easy to add new interpretation methods or visualizations
-4. **Performance**: Cache expensive computations (SHAP values)
-5. **Configurability**: Behavior driven by simple configuration objects
+**What**: Understand which features drive model predictions overall
 
-### High-Level Architecture
+**Outputs**:
+- Bar chart of mean absolute SHAP values
+- Beeswarm plot showing value distributions
+- Feature importance table with statistics
+- Model performance metrics for context
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     User Interface Layer                     │
-│  - Jupyter Notebooks                                         │
-│  - Python Scripts                                            │
-│  - (Future: Web Dashboard)                                   │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────────┐
-│               Model Interpreter (Main API)                   │
-│  - interpret_global()                                        │
-│  - interpret_local()                                         │
-│  - generate_report()                                         │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-       ┌───────────────┼───────────────┐
-       │               │               │
-┌──────▼────┐   ┌──────▼────┐   ┌─────▼──────┐
-│ Explainers │   │Visualizers│   │  Business  │
-│  - SHAP    │   │  - Plotly │   │ Translator │
-│  - LIME    │   │  - Mpl    │   │  - Narrative│
-│  - Perm.   │   │  - Custom │   │  - Insights│
-└────────────┘   └───────────┘   └────────────┘
-       │               │               │
-       └───────────────┼───────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────────┐
-│                   Utility Layer                              │
-│  - Data Processor (encoding, normalization)                 │
-│  - Model Wrapper (unified interface)                        │
-│  - Cache Manager (SHAP value storage)                       │
-│  - Config Manager (settings)                                │
-└─────────────────────────────────────────────────────────────┘
-```
+**Key Insight**: "Engagement (pages_viewed, time_on_site) drives 65% of model decisions"
 
-### Data Flow
+---
 
-```
-Input: Model + Training Data + Test Instance
-  ↓
-Data Processor: Encode categoricals, create baseline
-  ↓
-Explainer: Compute SHAP values (cached)
-  ↓
-Visualizer: Create plots (force, waterfall, summary)
-  ↓
-Business Translator: Generate narrative
-  ↓
-Output: Visualizations + Text Report + Recommendations
-```
+### Capability 2: Segment Analysis
+
+**What**: Compare how model behaves for different customer groups
+
+**Outputs**:
+- Feature importance by segment (occupation, country, etc.)
+- Segment prediction distributions
+- Comparison visualizations
+- Segment-specific insights
+
+**Key Insight**: "Discounts are 3x more important for students than professionals"
+
+---
+
+### Capability 3: Feature Dependence
+
+**What**: Show how changing a feature affects predictions
+
+**Outputs**:
+- Scatter plots: feature value vs SHAP value
+- Interaction detection (2-way dependencies)
+- Trend lines and patterns
+- Distribution overlays
+
+**Key Insight**: "Discount effectiveness increases with engagement level (interaction)"
+
+---
+
+### Capability 4: Categorical Intelligence
+
+**What**: Properly aggregate and display categorical variables
+
+**Outputs**:
+- Grouped SHAP values for categories
+- Category-level importance rankings
+- Breakdown by category value
+- No dummy variable confusion
+
+**Key Insight**: "Occupation contributes +8pp overall (professionals +6pp, students +2pp)"
+
+---
+
+### Capability 5: Model Performance Context
+
+**What**: Show model quality alongside explanations
+
+**Outputs**:
+- Accuracy, AUC, precision, recall
+- Confusion matrix
+- Calibration information
+- Confidence in explanations
+
+**Key Insight**: "Model achieves 85% accuracy (AUC: 0.92) - explanations are reliable"
 
 ---
 
 ## 3. Package Dependencies
 
-### Core Dependencies
+### Core Requirements
 
-| Package | Version | Purpose | Justification |
-|---------|---------|---------|---------------|
-| **shap** | >=0.42.0 | Primary interpretation engine | Industry standard, mathematically rigorous, comprehensive |
-| **scikit-learn** | >=1.3.0 | Model interface, preprocessing | Standard ML library |
-| **pandas** | >=2.0.0 | Data manipulation | DataFrame operations |
-| **numpy** | >=1.24.0 | Numerical operations | Array computations |
+```python
+# requirements.txt
 
-### Visualization Dependencies
+# Core
+shap>=0.42.0           # Primary interpretation engine
+scikit-learn>=1.3.0    # Model interface
+pandas>=2.0.0          # Data manipulation
+numpy>=1.24.0          # Numerical operations
 
-| Package | Version | Purpose | Justification |
-|---------|---------|---------|---------------|
-| **matplotlib** | >=3.7.0 | Base plotting | Foundation for many SHAP plots |
-| **plotly** | >=5.14.0 | Interactive visualizations | Better for dashboards, business users |
-| **seaborn** | >=0.12.0 | Statistical plots | Enhanced matplotlib aesthetics |
+# Visualization
+matplotlib>=3.7.0      # Base plotting
+plotly>=5.14.0         # Interactive plots
+seaborn>=0.12.0        # Statistical visualization
 
-### Optional Dependencies
+# Optional (for specific models)
+xgboost>=1.7.0         # If using XGBoost
+lightgbm>=4.0.0        # If using LightGBM
+catboost>=1.2.0        # If using CatBoost
 
-| Package | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| **lime** | >=0.2.0 | Alternative explanations | Fast local explanations, validation |
-| **xgboost** | >=1.7.0 | Model support | If using XGBoost models |
-| **lightgbm** | >=4.0.0 | Model support | If using LightGBM models |
-| **catboost** | >=1.2.0 | Model support | If using CatBoost models |
+# Jupyter
+ipywidgets>=8.0.0      # Interactive widgets
+```
 
-### Why SHAP as Primary Engine?
+### Why SHAP Only?
 
-**Advantages:**
-- ✅ Mathematically rigorous (Shapley values from game theory)
-- ✅ Model-agnostic (works with any model)
-- ✅ Handles interactions well
-- ✅ Industry standard (regulatory acceptance)
-- ✅ Rich visualization library
-- ✅ TreeExplainer is extremely fast for tree models
+**Advantages**:
+- ✅ Mathematically rigorous (Shapley values)
+- ✅ Handles interactions naturally
+- ✅ TreeExplainer is extremely fast
+- ✅ Industry standard for interpretability
+- ✅ Works with sampling for large datasets
 
-**Trade-offs:**
-- ⚠️ Can be computationally expensive (mitigated by caching)
-- ⚠️ Requires baseline selection (mitigated by smart defaults)
-- ⚠️ Learning curve for theory (mitigated by business translation layer)
-
-**Decision**: Use SHAP as primary, with option to add LIME later for speed comparisons.
+**Decision**: Focus 100% on SHAP, skip LIME and other methods
 
 ---
 
@@ -197,683 +207,569 @@ classifier_model_interpreter/
 │   ├── core/
 │   │   ├── __init__.py
 │   │   ├── interpreter.py          # Main API class
-│   │   ├── base_explainer.py       # Abstract base for explainers
-│   │   └── config.py               # Configuration dataclasses
+│   │   └── config.py               # Simple configuration
 │   │
 │   ├── explainers/
 │   │   ├── __init__.py
-│   │   ├── shap_explainer.py       # SHAP implementation
-│   │   ├── feature_importance.py   # Global importance
-│   │   └── interaction_analyzer.py # Feature interactions
+│   │   ├── shap_explainer.py       # SHAP computation
+│   │   └── categorical_handler.py  # Category aggregation
 │   │
 │   ├── visualization/
 │   │   ├── __init__.py
-│   │   ├── base_plotter.py         # Abstract plotter
-│   │   ├── shap_plots.py           # SHAP-specific plots
-│   │   ├── plotly_dashboard.py     # Interactive dashboard
-│   │   └── report_builder.py       # HTML/PDF report generation
+│   │   ├── global_plots.py         # Feature importance plots
+│   │   ├── segment_plots.py        # Segment comparison plots
+│   │   ├── dependence_plots.py     # Feature dependence
+│   │   └── performance_plots.py    # Model performance viz
 │   │
-│   ├── business/
+│   ├── analysis/
 │   │   ├── __init__.py
-│   │   ├── narrative_generator.py  # Text explanations
-│   │   ├── insight_extractor.py    # Actionable insights
-│   │   └── recommendation_engine.py # What-if scenarios
+│   │   ├── segment_analyzer.py     # Segment-level analysis
+│   │   ├── interaction_detector.py # Feature interactions
+│   │   └── pattern_finder.py       # Global pattern detection
 │   │
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── data_processor.py       # Encoding, normalization
-│   │   ├── categorical_handler.py  # Category grouping
-│   │   ├── model_wrapper.py        # Unified model interface
-│   │   ├── cache_manager.py        # SHAP value caching
-│   │   └── validators.py           # Input validation
-│   │
-│   └── templates/
-│       ├── report_template.html    # HTML report template
-│       └── narrative_templates.py  # Text templates
+│   └── utils/
+│       ├── __init__.py
+│       ├── data_utils.py           # Sampling, preprocessing
+│       ├── model_utils.py          # Model wrapper
+│       └── validation_utils.py     # Soft validation (warnings only)
 │
 ├── notebooks/
-│   ├── 01_basic_usage.ipynb
-│   ├── 02_categorical_handling.ipynb
-│   ├── 03_business_insights.ipynb
-│   └── 04_full_workflow.ipynb
-│
-├── tests/
-│   ├── test_explainers.py
-│   ├── test_visualization.py
-│   ├── test_business_translation.py
-│   └── test_integration.py
+│   ├── 01_global_interpretation.ipynb
+│   ├── 02_segment_analysis.ipynb
+│   ├── 03_categorical_handling.ipynb
+│   ├── 04_feature_interactions.ipynb
+│   └── 05_full_workflow_example.ipynb
 │
 ├── data/
-│   ├── customer_conversion.csv     # Test dataset
-│   └── customer_conversion_README.md
+│   └── customer_conversion.csv
 │
 ├── requirements.txt
-├── SPECIFICATION.md               # This file
+├── SPECIFICATION_v2.md            # This file
 └── README.md
 ```
+
+**Design Principles**:
+- Simple, flat structure
+- Reusable functions (not classes where possible)
+- Each module does one thing well
+- Easy to understand and extend
 
 ---
 
 ## 5. Key Features
 
-### Feature 1: Global Feature Importance
+### 5.1 Global Feature Importance
 
-**Description**: Show which features matter most across all predictions.
-
-**Methods**:
-- Mean absolute SHAP values (primary)
-- Permutation importance (validation)
-- SHAP summary plot (beeswarm)
-
-**Output**:
-- Bar chart of top N features
-- Beeswarm plot showing distribution of effects
-- Table with numerical values
-
-**Configuration**:
-```python
-config = GlobalImportanceConfig(
-    top_n=10,                    # Show top 10 features
-    plot_type='bar',             # 'bar' or 'beeswarm'
-    categorical_grouping=True    # Group dummy variables
-)
-```
-
----
-
-### Feature 2: Local Prediction Explanation
-
-**Description**: Explain why a specific prediction was made.
-
-**Methods**:
-- SHAP force plot
-- SHAP waterfall plot
-- LIME (optional, for validation)
-
-**Output**:
-- Interactive force plot
-- Waterfall chart showing feature stacking
-- Text narrative explaining prediction
-
-**Configuration**:
-```python
-config = LocalExplanationConfig(
-    instance_idx=0,              # Which prediction to explain
-    plot_types=['force', 'waterfall'],
-    show_feature_values=True,    # Display actual values
-    baseline_comparison=True     # Compare to average prediction
-)
-```
-
----
-
-### Feature 3: Feature Dependence Analysis
-
-**Description**: Show how a feature affects predictions across its range.
-
-**Methods**:
-- SHAP dependence plots
-- Partial dependence plots
-- ICE (Individual Conditional Expectation) plots
-
-**Output**:
-- Scatter plot: feature value vs SHAP value
-- Optional color dimension for interactions
-- Smoothed trend line
-
-**Configuration**:
-```python
-config = DependenceConfig(
-    feature='age',
-    interaction_feature='income',  # Auto-detect if None
-    plot_type='scatter',           # 'scatter' or 'violin'
-    show_distribution=True         # Show marginal histogram
-)
-```
-
----
-
-### Feature 4: Categorical Variable Handling
-
-**Description**: Properly handle categorical features in all visualizations.
-
-**Approach**:
-1. **Detection**: Automatically identify categorical features
-   - By dtype (object, category)
-   - By one-hot encoding pattern (feature_A, feature_B, feature_C)
-   - By user specification
-
-2. **Grouping**: Aggregate SHAP values for dummy variables
-   ```python
-   # Original dummy variables
-   color_red: +0.05
-   color_blue: +0.03
-   color_green: +0.00
-
-   # Grouped representation
-   color: +0.08 (primarily driven by red and blue)
-   ```
-
-3. **Visualization**: Show categories, not dummy indicators
-   ```
-   Bar chart:
-   color_red    [████] 0.05     ❌ Bad
-   color        [████] 0.08     ✅ Good
-
-   With breakdown:
-   color        [████████] 0.08
-     └─ red     [█████]    0.05
-     └─ blue    [███]      0.03
-     └─ green   []         0.00
-   ```
-
-**Configuration**:
-```python
-config = CategoricalConfig(
-    auto_detect=True,
-    categorical_features=['country', 'occupation'],
-    one_hot_groups={
-        'color': ['color_red', 'color_blue', 'color_green']
-    },
-    aggregation='sum'  # 'sum', 'mean', 'max'
-)
-```
-
----
-
-### Feature 5: Business Narrative Generation
-
-**Description**: Convert SHAP outputs into plain English recommendations.
-
-**Approach**:
-1. **Template-based**: Predefined sentence structures
-2. **Context-aware**: Different narratives for different domains
-3. **Actionable**: Focus on controllable features
-
-**Example Output**:
-```
-PREDICTION SUMMARY
-==================
-Customer #12345 has a 72% probability of converting (vs. 36% average).
-
-TOP DRIVERS OF CONVERSION:
-1. High Engagement (+28 percentage points)
-   - Viewed 45 pages (vs. 12 average)
-   - Watched 8 videos (vs. 3 average)
-   → INSIGHT: Customer is highly engaged with content
-
-2. Discount Offered (+12 percentage points)
-   - 30% discount vs. 0% for average customer
-   → RECOMMENDATION: Discount is working - customer is price-sensitive
-
-3. Professional Occupation (+8 percentage points)
-   - Professionals convert at 40% vs. 36% overall
-   → INSIGHT: Aligns with target customer profile
-
-MITIGATING FACTORS:
-1. Recent Signup (-5 percentage points)
-   - Only 3 days since signup vs. 10 average
-   → RECOMMENDATION: Follow up in 1 week to increase conversion
-
-RECOMMENDATION: HIGH likelihood of conversion. Consider:
-- Send reminder email highlighting popular courses
-- Extend trial by 3 days to allow more exploration time
-- Emphasize professional development benefits in messaging
-```
-
-**Configuration**:
-```python
-config = NarrativeConfig(
-    domain='customer_conversion',  # 'credit_risk', 'churn', etc.
-    detail_level='summary',        # 'summary', 'detailed', 'technical'
-    include_recommendations=True,
-    focus_on_controllable=True,    # Emphasize actionable features
-    top_n_features=3
-)
-```
-
----
-
-### Feature 6: Interactive Dashboard
-
-**Description**: Plotly-based dashboard for exploration.
-
-**Components**:
-- Global feature importance (interactive bar chart)
-- Instance selector (dropdown)
-- Local explanation (force plot + waterfall)
-- Dependence plot (feature selector)
-- Narrative panel (auto-generated text)
-
-**Technology**: Plotly Dash or standalone HTML with plotly.js
-
-**Configuration**:
-```python
-config = DashboardConfig(
-    port=8050,
-    show_feature_values=True,
-    enable_what_if=True,      # Allow feature modification
-    cache_explanations=True
-)
-```
-
----
-
-## 6. Visualization Components
-
-### 6.1 Global Importance - Bar Chart
-
-**When to Use**: Show overall feature importance
-
-**Implementation**:
+**Function Signature**:
 ```python
 def plot_global_importance(
-    shap_values: np.ndarray,
-    feature_names: list,
-    top_n: int = 10,
-    categorical_groups: dict = None
-) -> plotly.graph_objects.Figure:
-    """
-    Create bar chart of mean absolute SHAP values.
-
-    Parameters:
-        shap_values: SHAP values array (n_samples, n_features)
-        feature_names: List of feature names
-        top_n: Number of top features to show
-        categorical_groups: Dict mapping category name to dummy vars
-
-    Returns:
-        Plotly Figure object
-    """
-```
-
-**Visual Specifications**:
-- Horizontal bars, sorted by importance (descending)
-- Color: Single color for consistency
-- Annotations: Numerical values on bars
-- Title: "Top {n} Most Important Features"
-- X-axis: "Mean |SHAP Value| (impact on prediction)"
-
----
-
-### 6.2 Local Explanation - Waterfall Plot
-
-**When to Use**: Explain individual predictions
-
-**Implementation**:
-```python
-def plot_waterfall(
-    base_value: float,
-    shap_values: np.ndarray,
-    feature_values: dict,
-    feature_names: list,
-    prediction: float
-) -> plotly.graph_objects.Figure:
-    """
-    Create waterfall chart showing feature contributions.
-
-    Parameters:
-        base_value: Model's average prediction
-        shap_values: SHAP values for this instance
-        feature_values: Dict of feature_name: value
-        feature_names: Ordered list of features to show
-        prediction: Actual model prediction
-
-    Returns:
-        Plotly Figure object
-    """
-```
-
-**Visual Specifications**:
-- Start: Base value (average prediction)
-- Bars: Features sorted by absolute SHAP value
-- Colors: Red (positive) / Blue (negative)
-- End: Actual prediction
-- Annotations: Feature name + value + SHAP contribution
-
-**Example**:
-```
-Base (36%) ─┬→ Engagement: +28% ─┬→ Discount: +12% ─┬→ ... ─┬→ Prediction (72%)
-            │                    │                   │       │
-         [Start]              [+28pp]             [+12pp]  [Final]
-```
-
----
-
-### 6.3 Dependence Plot - Scatter with Interaction
-
-**When to Use**: Show how a feature affects predictions
-
-**Implementation**:
-```python
-def plot_dependence(
-    feature_name: str,
-    feature_values: np.ndarray,
-    shap_values: np.ndarray,
-    interaction_feature: str = None,
-    interaction_values: np.ndarray = None
-) -> plotly.graph_objects.Figure:
-    """
-    Create scatter plot of feature vs SHAP value.
-
-    Parameters:
-        feature_name: Name of primary feature
-        feature_values: Values of primary feature
-        shap_values: SHAP values for primary feature
-        interaction_feature: Optional interacting feature name
-        interaction_values: Optional interacting feature values
-
-    Returns:
-        Plotly Figure object
-    """
-```
-
-**Visual Specifications**:
-- X-axis: Feature value
-- Y-axis: SHAP value (impact on prediction)
-- Color: Interaction feature (if provided)
-- Points: Semi-transparent for overlapping visibility
-- Trend: Smoothed line (LOWESS)
-- Zero line: Horizontal line at y=0
-
----
-
-### 6.4 Summary Plot - Beeswarm
-
-**When to Use**: Show feature importance + distribution of effects
-
-**Implementation**: Use `shap.summary_plot()` with custom styling
-
-**Visual Specifications**:
-- Y-axis: Features (sorted by importance)
-- X-axis: SHAP value
-- Color: Feature value (low=blue, high=red)
-- Points: One per sample, jittered vertically
-- Interpretation: Shows not just importance, but directionality and spread
-
----
-
-### 6.5 Force Plot - Interactive
-
-**When to Use**: Interactive exploration of single prediction
-
-**Implementation**: Use `shap.force_plot()` converted to Plotly
-
-**Visual Specifications**:
-- Base value at center
-- Positive contributions push right (red)
-- Negative contributions push left (blue)
-- Interactive hover for feature details
-- Can stack multiple instances for comparison
-
----
-
-### 6.6 Categorical Breakdown - Grouped Bar
-
-**When to Use**: Show contribution of each category
-
-**Implementation**:
-```python
-def plot_categorical_breakdown(
-    category_name: str,
-    category_values: list,
-    shap_values: dict,
-    overall_shap: float
-) -> plotly.graph_objects.Figure:
-    """
-    Show SHAP contribution broken down by category.
-
-    Parameters:
-        category_name: Name of categorical feature
-        category_values: List of possible categories
-        shap_values: Dict of category: SHAP value
-        overall_shap: Total SHAP for this categorical feature
-
-    Returns:
-        Plotly Figure object
-    """
-```
-
-**Visual Example**:
-```
-Occupation: +8pp total
-
-professional  [████████] +6pp
-student       [███]      +3pp
-self_employed [█]        +1pp
-retired       []         +0pp
-unemployed    [▬▬]       -2pp
-```
-
----
-
-## 7. Business Translation Layer
-
-### 7.1 Narrative Templates
-
-**Structure**: Domain-specific templates with placeholders
-
-**Example Template** (Customer Conversion):
-```python
-TEMPLATE = """
-{PREDICTION_SUMMARY}
-
-TOP DRIVERS OF {OUTCOME}:
-{POSITIVE_DRIVERS}
-
-{NEGATIVE_DRIVERS_SECTION}
-
-RECOMMENDATIONS:
-{RECOMMENDATIONS}
-"""
-
-POSITIVE_DRIVER_TEMPLATE = """
-{rank}. {feature_name} (+{impact}pp)
-   - {feature_description}
-   → {insight}
-"""
-```
-
-**Feature Descriptions** (Auto-generated):
-```python
-def describe_feature(feature_name, feature_value, percentile):
-    """Generate natural language description of feature value."""
-    if percentile > 75:
-        return f"{feature_name} is {feature_value} (top 25%)"
-    elif percentile > 50:
-        return f"{feature_name} is {feature_value} (above average)"
-    elif percentile > 25:
-        return f"{feature_name} is {feature_value} (below average)"
-    else:
-        return f"{feature_name} is {feature_value} (bottom 25%)"
-```
-
----
-
-### 7.2 Insight Extraction Rules
-
-**Pattern Matching**:
-1. **High Impact + Controllable** → Primary recommendation
-2. **High Impact + Non-controllable** → Context/explanation
-3. **Interaction Effect Detected** → Highlight synergy
-4. **Unexpected Pattern** → Flag for investigation
-
-**Example Rules**:
-```python
-INSIGHT_RULES = {
-    'high_engagement': {
-        'pattern': lambda f: f.startswith('pages_viewed') or f.startswith('time_on'),
-        'positive': "Customer is highly engaged → Strong conversion signal",
-        'negative': "Low engagement → Risk of not converting"
-    },
-    'price_sensitivity': {
-        'pattern': lambda f: 'discount' in f or 'price' in f,
-        'positive': "Price discount is driving conversion → Price-sensitive customer",
-        'negative': "No discount hurting conversion → Consider offering promotion"
-    }
-}
-```
-
----
-
-### 7.3 Recommendation Engine
-
-**What-If Scenarios**:
-```python
-def generate_what_if(
-    instance: pd.Series,
-    feature_to_change: str,
-    new_value: Any,
     model,
-    explainer
-) -> dict:
+    X: pd.DataFrame,
+    y: np.ndarray = None,
+    categorical_features: List[str] = None,
+    top_n: int = 10,
+    sample_size: int = 2000,
+    plot_type: str = 'bar',  # 'bar', 'beeswarm'
+    show_performance: bool = True
+) -> plotly.graph_objects.Figure:
     """
-    Calculate impact of changing feature value.
+    Display global feature importance using SHAP values.
+
+    Parameters:
+        model: Trained sklearn-compatible classifier
+        X: Feature matrix
+        y: Target variable (optional, for performance metrics)
+        categorical_features: List of categorical column names
+        top_n: Number of top features to show
+        sample_size: Max samples for SHAP (use random sample if X is larger)
+        plot_type: 'bar' for mean |SHAP|, 'beeswarm' for distribution
+        show_performance: Include model performance metrics
+
+    Returns:
+        Plotly figure (can be displayed with fig.show())
+
+    Notes:
+        - Automatically aggregates categorical SHAP values
+        - Warns if data issues detected (doesn't error)
+        - Uses TreeExplainer for tree models, KernelExplainer otherwise
+    """
+```
+
+**Output Example**:
+```
+Global Feature Importance
+Model Performance: Accuracy=85%, AUC=0.92
+
+Feature                    Mean |SHAP Value|
+────────────────────────────────────────────
+pages_viewed               0.42 ████████████
+time_on_site_mins          0.35 ██████████
+discount_offered           0.28 ████████
+occupation                 0.18 █████
+videos_watched             0.15 ████
+previous_courses           0.12 ███
+referral_source            0.08 ██
+age                        0.05 █
+device_type                0.03 █
+```
+
+---
+
+### 5.2 Feature Distribution Context
+
+**Function Signature**:
+```python
+def plot_feature_distribution(
+    feature_name: str,
+    X: pd.DataFrame,
+    highlight_value: Any = None,
+    show_quantiles: bool = True
+) -> plotly.graph_objects.Figure:
+    """
+    Show distribution of feature values with optional highlight.
+
+    Parameters:
+        feature_name: Name of feature to plot
+        X: Feature matrix
+        highlight_value: Optional value to highlight (e.g., for comparison)
+        show_quantiles: Show 25th, 50th, 75th percentile lines
+
+    Returns:
+        Plotly histogram/KDE plot
+
+    Example Use:
+        # Show where a customer stands
+        plot_feature_distribution('pages_viewed', X, highlight_value=52)
+        # → "Your value (52) is at 90th percentile"
+    """
+```
+
+---
+
+### 5.3 Segment Analysis
+
+**Function Signature**:
+```python
+def compare_segments(
+    model,
+    X: pd.DataFrame,
+    segment_column: str,
+    categorical_features: List[str] = None,
+    sample_size: int = 2000,
+    segments_to_compare: List[Any] = None  # None = all segments
+) -> Dict:
+    """
+    Compare model behavior across segments.
+
+    Parameters:
+        model: Trained classifier
+        X: Feature matrix (must include segment_column)
+        segment_column: Column to segment by (e.g., 'occupation')
+        categorical_features: List of categorical columns
+        sample_size: Max samples per segment
+        segments_to_compare: Specific segments (None = all)
 
     Returns:
         {
-            'original_prediction': 0.72,
-            'new_prediction': 0.85,
-            'delta': +0.13,
-            'narrative': "If discount increased from 0% to 30%,
-                         conversion probability increases by 13pp"
+            'segment_sizes': {segment: count},
+            'feature_importance_by_segment': {segment: {feature: importance}},
+            'prediction_distributions': {segment: [predictions]},
+            'key_differences': {feature: {segment1: val, segment2: val}}
+        }
+
+    Example Use:
+        results = compare_segments(model, X, 'occupation')
+        # → Shows how discount matters more to students than professionals
+    """
+```
+
+**Visualization Function**:
+```python
+def plot_segment_comparison(
+    segment_results: Dict,
+    feature_to_compare: str = None,  # None = all features
+    comparison_type: str = 'importance'  # 'importance', 'predictions'
+) -> plotly.graph_objects.Figure:
+    """
+    Visualize segment comparison results.
+
+    Parameters:
+        segment_results: Output from compare_segments()
+        feature_to_compare: Specific feature (None = top features)
+        comparison_type: What to compare
+
+    Returns:
+        Grouped bar chart or heatmap
+    """
+```
+
+---
+
+### 5.4 Feature Dependence with Interactions
+
+**Function Signature**:
+```python
+def plot_feature_dependence(
+    feature_name: str,
+    model,
+    X: pd.DataFrame,
+    interaction_feature: str = 'auto',  # 'auto' detects strongest
+    categorical_features: List[str] = None,
+    sample_size: int = 2000
+) -> plotly.graph_objects.Figure:
+    """
+    Show how feature affects predictions (with optional interaction).
+
+    Parameters:
+        feature_name: Primary feature to analyze
+        model: Trained classifier
+        X: Feature matrix
+        interaction_feature: Feature to color by ('auto' finds strongest)
+        categorical_features: List of categorical columns
+        sample_size: Max samples to use
+
+    Returns:
+        Scatter plot: feature value vs SHAP value
+        Color dimension: interaction feature (if provided)
+
+    Example Use:
+        plot_feature_dependence('discount_offered', model, X)
+        # → Might auto-detect that occupation interacts with discount
+        # → Shows discount is more effective for students
+    """
+```
+
+---
+
+### 5.5 Model Performance Dashboard
+
+**Function Signature**:
+```python
+def plot_performance_summary(
+    model,
+    X: pd.DataFrame,
+    y: np.ndarray,
+    show_calibration: bool = True
+) -> plotly.graph_objects.Figure:
+    """
+    Create 2x2 performance overview.
+
+    Panels:
+    1. Confusion Matrix
+    2. ROC Curve
+    3. Precision-Recall Curve
+    4. Calibration Plot (predicted vs actual)
+
+    Parameters:
+        model: Trained classifier
+        X: Feature matrix
+        y: True labels
+        show_calibration: Include calibration analysis
+
+    Returns:
+        Plotly figure with subplots
+    """
+```
+
+---
+
+## 6. Categorical Handling
+
+### Philosophy: Aggregate, Don't Separate
+
+**Problem**: One-hot encoding creates confusing explanations
+```
+# Bad (one-hot approach)
+occupation_student        SHAP: +0.02
+occupation_professional   SHAP: +0.06
+occupation_self_employed  SHAP: +0.01
+# → User sees 3 separate features, doesn't understand "occupation" impact
+```
+
+**Solution**: Sum SHAP values by category
+```
+# Good (aggregated approach)
+occupation                SHAP: +0.09
+  └─ professional:        +0.06
+  └─ student:             +0.02
+  └─ self_employed:       +0.01
+# → User sees occupation's total impact, can drill down if needed
+```
+
+### Implementation
+
+**Function Signature**:
+```python
+def aggregate_categorical_shap(
+    shap_values: np.ndarray,
+    feature_names: List[str],
+    categorical_features: List[str],
+    aggregation: str = 'sum'  # 'sum', 'mean', 'max'
+) -> Tuple[np.ndarray, List[str], Dict]:
+    """
+    Aggregate SHAP values for categorical features.
+
+    Detection Logic:
+    1. User-specified categorical_features list
+    2. Auto-detect one-hot patterns (feature_A, feature_B, feature_C)
+    3. Auto-detect by dtype (object, category)
+
+    Parameters:
+        shap_values: SHAP values array (n_samples, n_features)
+        feature_names: Original feature names
+        categorical_features: List of categorical column names
+        aggregation: How to combine dummy variables
+
+    Returns:
+        aggregated_shap: SHAP values with categoricals combined
+        aggregated_names: Feature names with categoricals grouped
+        category_breakdown: Dict mapping category to component breakdown
+
+    Example:
+        # Input: color_red, color_blue, color_green
+        # Output: color (with breakdown available)
+    """
+```
+
+**Auto-Detection**:
+```python
+def detect_categorical_groups(feature_names: List[str]) -> Dict[str, List[str]]:
+    """
+    Automatically detect one-hot encoded categorical groups.
+
+    Detection patterns:
+    - feature_value1, feature_value2 → feature
+    - is_value1, is_value2 → is_*
+    - Common prefixes with different suffixes
+
+    Returns:
+        {
+            'color': ['color_red', 'color_blue', 'color_green'],
+            'occupation': ['occupation_student', 'occupation_professional']
         }
     """
 ```
 
-**Actionable Insights**:
+---
+
+## 7. Segment Analysis
+
+### 7.1 Segment Comparison Workflow
+
+**Step 1: Identify Segments**
 ```python
-def extract_actionable_insights(
-    shap_explanation,
-    controllable_features: list
-) -> list:
+# Define segments to analyze
+segments = {
+    'occupation': ['professional', 'student', 'self_employed'],
+    'country': ['USA', 'UK', 'Canada'],
+    'has_discount': [True, False]  # Derived from discount_offered > 0
+}
+```
+
+**Step 2: Compute Segment Statistics**
+```python
+def analyze_all_segments(
+    model,
+    X: pd.DataFrame,
+    segment_columns: List[str],
+    categorical_features: List[str] = None,
+    sample_size: int = 2000
+) -> Dict:
     """
-    Extract top recommendations focusing on controllable features.
+    Analyze model behavior across multiple segmentations.
 
-    Returns:
-        [
-            {
-                'feature': 'discount_offered',
-                'current_value': 0,
-                'recommended_value': 20,
-                'expected_impact': '+10pp conversion',
-                'rationale': 'Customer is price-sensitive based on...'
-            }
-        ]
+    Returns comprehensive statistics:
+    - Segment sizes
+    - Average predictions by segment
+    - Feature importance by segment
+    - Segment-specific patterns
+    - Key differentiators between segments
     """
 ```
 
----
+**Step 3: Visualize Differences**
+```python
+# Heatmap of feature importance by segment
+plot_segment_heatmap(results, top_n=10)
 
-## 8. Implementation Phases
+# Side-by-side comparison
+plot_segment_comparison(results, segments=['professional', 'student'])
 
-### Phase 1: Foundation (MVP) - 2-3 weeks
-
-**Deliverables**:
-- [ ] Core architecture setup
-- [ ] SHAP integration (TreeExplainer)
-- [ ] Basic visualizations (bar chart, waterfall)
-- [ ] Categorical variable grouping
-- [ ] Simple narrative generation
-- [ ] Test on customer_conversion.csv dataset
-
-**Success Criteria**:
-- Can explain a single prediction with waterfall chart
-- Can show global feature importance
-- Categorical variables display correctly
-- Basic text summary generated
-
-**Components**:
-```
-src/
-├── core/interpreter.py          ✓ Main API
-├── explainers/shap_explainer.py ✓ SHAP implementation
-├── visualization/shap_plots.py   ✓ Waterfall + bar charts
-├── utils/categorical_handler.py  ✓ Category grouping
-├── business/narrative_generator.py ✓ Basic templates
+# Interaction plots
+plot_segment_interactions(results)
 ```
 
----
+### 7.2 Key Insights to Extract
 
-### Phase 2: Enhanced Visualizations - 1-2 weeks
-
-**Deliverables**:
-- [ ] Dependence plots with interactions
-- [ ] Beeswarm summary plots
-- [ ] Force plots (interactive)
-- [ ] Plotly-based interactive dashboard
-- [ ] Multiple instance comparison
-
-**Success Criteria**:
-- All major SHAP plot types supported
-- Interactive exploration works
-- Dashboard loads in <5 seconds
-
-**Components**:
+**Pattern 1: Segment-Specific Drivers**
 ```
-src/
-├── visualization/plotly_dashboard.py ✓ Interactive dashboard
-├── explainers/interaction_analyzer.py ✓ Feature interactions
+Question: "What drives conversions for students vs professionals?"
+
+Answer:
+Students:
+- discount_offered:     0.28 (1st most important)
+- pages_viewed:         0.22 (2nd)
+- referral_source:      0.15 (3rd)
+
+Professionals:
+- pages_viewed:         0.35 (1st most important)
+- previous_courses:     0.25 (2nd)
+- discount_offered:     0.09 (5th)
+
+INSIGHT: Students are 3x more price-sensitive than professionals
 ```
 
----
-
-### Phase 3: Business Intelligence - 1-2 weeks
-
-**Deliverables**:
-- [ ] Advanced narrative generation
-- [ ] What-if scenario calculator
-- [ ] Actionable recommendations
-- [ ] HTML/PDF report generation
-- [ ] Domain-specific templates (credit, conversion, churn)
-
-**Success Criteria**:
-- Narratives read naturally to non-technical users
-- What-if scenarios are accurate
-- Reports are stakeholder-ready
-
-**Components**:
+**Pattern 2: Feature Interactions by Segment**
 ```
-src/
-├── business/insight_extractor.py      ✓ Insight extraction
-├── business/recommendation_engine.py  ✓ What-if scenarios
-├── visualization/report_builder.py    ✓ Report generation
-├── templates/                         ✓ Domain templates
+Question: "Does discount effectiveness vary by segment?"
+
+Answer:
+Discount Impact by Occupation:
+- Students:       +0.28 per 10% discount
+- Self-employed:  +0.15 per 10% discount
+- Professionals:  +0.09 per 10% discount
+- Retired:        +0.05 per 10% discount
+
+INSIGHT: Target discounts to students for maximum ROI
+```
+
+**Pattern 3: Segment Size vs Impact**
+```
+Segment           Size    Conversion Rate    Top Driver
+──────────────────────────────────────────────────────────
+professional      2,205   39.8%              pages_viewed
+student           1,284   34.6%              discount
+self_employed       727   37.1%              time_on_site
+retired             523   33.5%              previous_courses
+
+INSIGHT: Professionals are largest segment with highest conversion
 ```
 
 ---
 
-### Phase 4: Optimization & Extension - 1 week
+## 8. Implementation Plan
+
+### Phase 1: Core Foundation (Week 1-2)
 
 **Deliverables**:
-- [ ] SHAP value caching
-- [ ] Performance benchmarks
-- [ ] LIME integration (optional)
-- [ ] Batch processing support
-- [ ] Model comparison tools
-
-**Success Criteria**:
-- 10x speedup from caching on repeated calls
-- Can process 1,000 explanations in <1 minute
-- Documentation complete
+- [x] Project structure setup
+- [ ] SHAP explainer with sampling
+- [ ] Categorical aggregation logic
+- [ ] Global feature importance plot
+- [ ] Feature distribution plots
+- [ ] Model performance summary
+- [ ] Basic configuration
 
 **Components**:
 ```
 src/
-├── utils/cache_manager.py        ✓ Caching layer
-├── explainers/lime_explainer.py  ✓ LIME (optional)
+├── core/interpreter.py
+├── explainers/shap_explainer.py
+├── explainers/categorical_handler.py
+├── visualization/global_plots.py
+├── utils/data_utils.py (sampling, validation)
+└── utils/model_utils.py
 ```
+
+**Test Notebook**: `notebooks/01_global_interpretation.ipynb`
+
+**Success Criteria**:
+- Can compute SHAP for customer_conversion.csv
+- Can plot global importance with aggregated categoricals
+- Can show model performance metrics
+- Handles 5k+ dataset with sampling
+- Warnings work (no errors thrown)
+
+---
+
+### Phase 2: Segment Analysis (Week 3)
+
+**Deliverables**:
+- [ ] Segment analyzer
+- [ ] Segment comparison plots
+- [ ] Heatmap visualizations
+- [ ] Statistical comparison functions
+- [ ] Segment-specific insights
+
+**Components**:
+```
+src/
+├── analysis/segment_analyzer.py
+└── visualization/segment_plots.py
+```
+
+**Test Notebook**: `notebooks/02_segment_analysis.ipynb`
+
+**Success Criteria**:
+- Can compare occupation segments
+- Can show feature importance by segment
+- Can identify key differentiators
+- Visualizations are clear and actionable
+
+---
+
+### Phase 3: Feature Dependencies (Week 4)
+
+**Deliverables**:
+- [ ] Feature dependence plots
+- [ ] Interaction detection
+- [ ] Pattern finder
+- [ ] 2-way interaction visualizations
+
+**Components**:
+```
+src/
+├── analysis/interaction_detector.py
+├── analysis/pattern_finder.py
+└── visualization/dependence_plots.py
+```
+
+**Test Notebook**: `notebooks/04_feature_interactions.ipynb`
+
+**Success Criteria**:
+- Can plot feature vs SHAP value
+- Can auto-detect strongest interactions
+- Can visualize 2-way dependencies
+- Discovers discount × occupation interaction
+
+---
+
+### Phase 4: Polish & Documentation (Week 5)
+
+**Deliverables**:
+- [ ] Configuration presets
+- [ ] Helper functions
+- [ ] Full workflow example
+- [ ] Documentation
+- [ ] Code cleanup
+
+**Components**:
+```
+src/core/config.py (presets)
+notebooks/05_full_workflow_example.ipynb
+README.md (usage guide)
+```
+
+**Success Criteria**:
+- Presets make common tasks 1-liners
+- Full workflow notebook demonstrates all features
+- Documentation is clear
+- Code is well-commented
+
+---
+
+**Total Timeline: 5 weeks**
 
 ---
 
 ## 9. Usage Examples
 
-### Example 1: Basic Global Interpretation
+### Example 1: Quick Global Analysis
 
 ```python
-from classifier_model_interpreter import ModelInterpreter
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from classifier_model_interpreter import ModelInterpreter
 
 # Load data
 df = pd.read_csv('customer_conversion.csv')
@@ -884,507 +780,450 @@ y = df['converted']
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X, y)
 
-# Create interpreter
+# Create interpreter with categorical specification
 interpreter = ModelInterpreter(
     model=model,
-    data=X,
-    categorical_features=['country', 'occupation', 'device_type', 'referral_source']
+    X=X,
+    y=y,
+    categorical_features=['country', 'occupation', 'referral_source', 'device_type']
 )
 
-# Global feature importance
+# Global importance
 fig = interpreter.plot_global_importance(top_n=10)
 fig.show()
 
-# Get narrative
-narrative = interpreter.generate_global_narrative()
-print(narrative)
-```
-
-**Expected Output**:
-```
-GLOBAL FEATURE IMPORTANCE
-=========================
-
-The model relies most heavily on these features when predicting conversion:
-
-1. pages_viewed (Importance: 0.42)
-   - Most important driver of predictions
-   - Higher page views strongly associated with conversion
-
-2. time_on_site_mins (Importance: 0.35)
-   - Second most important
-   - More time on site indicates higher engagement
-
-3. discount_offered (Importance: 0.28)
-   - Strong impact on conversion decisions
-   - Discounts significantly increase conversion probability
-
-[... continues ...]
+# With performance context
+fig = interpreter.plot_global_importance(top_n=10, show_performance=True)
+fig.show()
+# → Shows: "Model Accuracy: 85%, AUC: 0.92"
 ```
 
 ---
 
-### Example 2: Local Prediction Explanation
+### Example 2: Segment Comparison
 
 ```python
-# Explain specific prediction
-instance_idx = 42
-fig = interpreter.plot_local_explanation(
-    instance_idx=instance_idx,
-    plot_type='waterfall'
+# Compare occupations
+results = interpreter.compare_segments(
+    segment_column='occupation',
+    segments_to_compare=['professional', 'student', 'self_employed']
+)
+
+# Visualize
+fig = interpreter.plot_segment_comparison(
+    segment_results=results,
+    comparison_type='importance'
 )
 fig.show()
 
-# Get detailed narrative
-narrative = interpreter.generate_local_narrative(
-    instance_idx=instance_idx,
-    detail_level='detailed'
-)
-print(narrative)
-```
-
-**Expected Output**:
-```
-PREDICTION EXPLANATION - Customer #42
-======================================
-
-PREDICTION: 85% probability of converting (HIGH)
-BASELINE: 36% average conversion rate
-DIFFERENCE: +49 percentage points above average
-
-WHY IS THIS PREDICTION SO HIGH?
-
-TOP 3 DRIVERS:
-1. Engagement Level (+35pp)
-   - Viewed 52 pages (vs. 12 average) → +20pp
-   - Spent 95 minutes on site (vs. 24 average) → +15pp
-   This customer is HIGHLY engaged with the content.
-
-2. Discount Offered (+18pp)
-   - Received 30% discount (vs. 0% typical)
-   This customer is benefiting from our promotion.
-
-3. Previous Courses (+8pp)
-   - Has completed 2 prior courses (vs. 0 typical)
-   This customer has a history with our platform.
-
-RECOMMENDATION: VERY HIGH conversion likelihood. This customer is:
-- Highly engaged (top 5% in page views)
-- Responding to discount promotion
-- A repeat customer
-
-ACTION: Send personalized course recommendations NOW to capitalize on high engagement.
-```
-
----
-
-### Example 3: Categorical Variable Analysis
-
-```python
-# Analyze categorical feature
-fig = interpreter.plot_categorical_importance(
-    feature='occupation',
-    plot_type='grouped_bar'
+# Heatmap view
+fig = interpreter.plot_segment_heatmap(
+    segment_results=results,
+    top_n=10
 )
 fig.show()
 
-# Get category-specific insights
-insights = interpreter.analyze_categorical_feature('occupation')
+# Get insights
+insights = interpreter.get_segment_insights(results)
 print(insights)
-```
-
-**Expected Output**:
-```
-OCCUPATION ANALYSIS
-===================
-
-Overall Impact: +6pp on conversion (positive driver)
-
-Breakdown by Category:
-- professional:   +8pp (highest impact, 40% conversion rate)
-- self_employed:  +4pp (above average, 37% conversion)
-- student:        +2pp (slightly above, 35% conversion)
-- retired:        +1pp (near average, 34% conversion)
-- unemployed:     -5pp (lowest, 27% conversion)
-
-INSIGHT: Professionals are the strongest converters. Consider:
-- Tailoring messaging to professional development
-- Highlighting career advancement benefits
-- Offering corporate/team packages
+# Output:
+# "Students are 3.1x more sensitive to discount than professionals"
+# "Professionals prioritize engagement (pages_viewed) over price"
 ```
 
 ---
 
-### Example 4: What-If Scenario
+### Example 3: Feature Dependence with Interaction
 
 ```python
-# Run what-if analysis
-scenario = interpreter.what_if(
-    instance_idx=42,
-    changes={
-        'discount_offered': 20,  # Change from 30% to 20%
-        'pages_viewed': 40       # Change from 52 to 40
-    }
+# Analyze discount effect
+fig = interpreter.plot_feature_dependence(
+    feature_name='discount_offered',
+    interaction_feature='auto'  # Auto-detect strongest interaction
 )
+fig.show()
 
-print(scenario['narrative'])
-```
+# Might show that occupation interacts with discount
+# Color-coded by occupation showing different slopes
 
-**Expected Output**:
-```
-WHAT-IF SCENARIO ANALYSIS
-=========================
-
-ORIGINAL PREDICTION: 85% conversion probability
-
-PROPOSED CHANGES:
-- Reduce discount from 30% to 20% (-10pp)
-- Reduce pages viewed from 52 to 40 (-12 pages)
-
-NEW PREDICTION: 68% conversion probability
-
-DELTA: -17 percentage points
-
-INTERPRETATION:
-- Reducing discount by 10pp decreases conversion by ~9pp
-- Reducing engagement decreases conversion by ~8pp
-- Combined effect is -17pp (slightly less than additive due to interactions)
-
-BUSINESS DECISION:
-If considering reducing discount to improve margins, expect ~9pp drop
-in conversion rate. At current engagement level (52 pages), customer
-would still likely convert even with lower discount.
+# Explicit interaction
+fig = interpreter.plot_feature_dependence(
+    feature_name='discount_offered',
+    interaction_feature='occupation'
+)
+fig.show()
 ```
 
 ---
 
-### Example 5: Batch Report Generation
+### Example 4: Feature Distribution Context
 
 ```python
-# Generate reports for top 100 high-value customers
-high_value_customers = [10, 25, 42, 67, 89, ...]  # Instance indices
+# Understand what "52 pages viewed" means
+fig = interpreter.plot_feature_distribution(
+    feature_name='pages_viewed',
+    highlight_value=52
+)
+fig.show()
+# → Shows: "Your value (52) is at 90th percentile"
 
-report = interpreter.generate_batch_report(
-    instance_indices=high_value_customers,
-    output_format='html',
-    include_what_if=True,
-    output_path='reports/high_value_customers_analysis.html'
+# Compare segment distributions
+fig = interpreter.plot_feature_distribution_by_segment(
+    feature_name='pages_viewed',
+    segment_column='occupation'
+)
+fig.show()
+# → Shows: Professionals average 18 pages, Students average 9
+```
+
+---
+
+### Example 5: Configuration Presets
+
+```python
+# Quick summary (fast, high-level)
+interpreter = ModelInterpreter.from_preset(
+    'quick_summary',
+    model=model,
+    X=X,
+    y=y
+)
+fig = interpreter.plot_global_importance()
+
+# Detailed analysis (comprehensive)
+interpreter = ModelInterpreter.from_preset(
+    'detailed_analysis',
+    model=model,
+    X=X,
+    y=y,
+    categorical_features=['occupation', 'country']
 )
 
-print(f"Report saved to: {report['path']}")
+# Custom configuration
+from classifier_model_interpreter import Config
+
+config = Config(
+    sample_size=2000,
+    categorical_features=['occupation', 'country', 'referral_source'],
+    aggregation_method='sum',
+    warn_on_issues=True,
+    top_n_default=15
+)
+
+interpreter = ModelInterpreter(model, X, y, config=config)
 ```
 
 ---
 
 ## 10. Testing Strategy
 
-### Unit Tests
+### Philosophy: Notebook-Driven Testing
 
-**Coverage Targets**: >80% for all modules
+**Approach**: Create comprehensive Jupyter notebooks that demonstrate all functionality and serve as both tests and documentation.
 
-**Key Test Cases**:
-```python
-# test_explainers.py
-def test_shap_explainer_returns_correct_shape():
-    """SHAP values should match (n_samples, n_features)"""
+### Test Notebooks
 
-def test_categorical_grouping():
-    """Dummy variables should be grouped correctly"""
+**Notebook 1: Global Interpretation** (`01_global_interpretation.ipynb`)
+```markdown
+# Global Model Interpretation
 
-def test_baseline_calculation():
-    """Baseline should equal mean prediction"""
+## Setup
+- Load customer_conversion.csv
+- Train RandomForestClassifier
+- Create interpreter
 
-# test_visualization.py
-def test_waterfall_plot_reconciles():
-    """Waterfall should sum to actual prediction"""
+## Tests
+1. Global feature importance (bar chart)
+   - Verify categoricals are aggregated
+   - Check top 10 features make sense
+   - Validate SHAP values sum correctly
 
-def test_force_plot_rendering():
-    """Force plot should render without errors"""
+2. Feature distributions
+   - Plot pages_viewed distribution
+   - Verify quantile markers
+   - Check highlighting works
 
-# test_business_translation.py
-def test_narrative_generation():
-    """Narrative should include all required sections"""
+3. Model performance
+   - Display confusion matrix
+   - Show ROC curve
+   - Validate AUC calculation
 
-def test_recommendation_accuracy():
-    """Recommendations should be based on SHAP values"""
+## Expected Results
+- pages_viewed should be top feature
+- Categorical features (occupation, referral_source) should be grouped
+- Model accuracy should be ~85%
+```
+
+**Notebook 2: Segment Analysis** (`02_segment_analysis.ipynb`)
+```markdown
+# Segment-Level Analysis
+
+## Tests
+1. Occupation segment comparison
+   - Compare professional vs student vs self_employed
+   - Verify segment sizes are correct
+   - Check feature importance differs by segment
+
+2. Segment heatmap
+   - Create heatmap of top 10 features × segments
+   - Verify discount is more important for students
+
+3. Country segment analysis
+   - Compare USA vs UK vs Canada
+   - Check for geographic patterns
+
+## Expected Results
+- Students should show higher discount sensitivity
+- Professionals should prioritize engagement features
+- Segment sizes should match data
+```
+
+**Notebook 3: Categorical Handling** (`03_categorical_handling.ipynb`)
+```markdown
+# Categorical Variable Handling
+
+## Tests
+1. One-hot detection
+   - Create test data with one-hot encoded features
+   - Verify auto-detection works
+   - Check aggregation is correct
+
+2. Manual specification
+   - Specify categorical_features list
+   - Verify aggregation matches manual
+
+3. Category breakdown
+   - Show occupation total: +0.09
+   - Break down: professional +0.06, student +0.02, etc.
+
+## Expected Results
+- SHAP values for dummy variables should sum to category total
+- No dummy variables should appear in plots
+- Category labels should be clear
+```
+
+**Notebook 4: Feature Interactions** (`04_feature_interactions.ipynb`)
+```markdown
+# Feature Dependencies and Interactions
+
+## Tests
+1. Discount dependence
+   - Plot discount vs SHAP
+   - Check for non-linear effects
+
+2. Auto-interaction detection
+   - Run with interaction_feature='auto'
+   - Verify occupation is detected as strongest interaction
+
+3. Segment-specific interactions
+   - Show discount effect by occupation
+   - Verify students have steeper slope
+
+## Expected Results
+- Discount should show positive SHAP relationship
+- Occupation should be detected as interacting feature
+- Interaction plot should show different slopes by segment
+```
+
+**Notebook 5: Full Workflow** (`05_full_workflow_example.ipynb`)
+```markdown
+# Complete Analysis Workflow
+
+## Scenario
+Analyze customer_conversion.csv to understand:
+1. What drives conversion overall?
+2. How do different customer segments behave?
+3. What features interact?
+4. What are actionable insights?
+
+## Workflow
+1. Load data and train model
+2. Global interpretation
+3. Segment analysis (occupation, country)
+4. Feature interactions
+5. Generate insights
+
+## Expected Insights
+- Engagement is primary driver (pages, time, videos)
+- Students are price-sensitive, professionals value content
+- Discount effectiveness varies by occupation
+- Referrals convert better than paid ads
 ```
 
 ---
 
-### Integration Tests
+### Validation Checklist
 
-**Test Scenarios**:
-1. **End-to-end workflow**: Load data → Train model → Generate explanations → Create report
-2. **Multiple model types**: Test with RF, XGBoost, LightGBM, LogisticRegression
-3. **Different data types**: Numerical only, categorical only, mixed
-4. **Edge cases**: Single instance, single feature, perfectly balanced classes
+For each notebook, verify:
 
----
+**Functionality**:
+- [ ] All code cells run without errors
+- [ ] Plots render correctly
+- [ ] Results are interpretable
+- [ ] Warnings appear where expected (not errors)
 
-### Validation Tests
+**Data Quality**:
+- [ ] SHAP values are reasonable (no extreme outliers)
+- [ ] Categorical aggregation is correct
+- [ ] Sample sizes are appropriate
+- [ ] Segment comparisons make sense
 
-**Domain Validation**:
-```python
-def test_shap_values_sum_to_prediction():
-    """SHAP values must satisfy additivity property"""
+**Visualizations**:
+- [ ] Labels are clear
+- [ ] Colors are meaningful
+- [ ] Titles are descriptive
+- [ ] Legends are helpful
 
-def test_categorical_shap_matches_dummy_sum():
-    """Grouped categorical SHAP should equal sum of dummies"""
-
-def test_what_if_predictions_are_consistent():
-    """What-if predictions should match model.predict()"""
-```
-
----
-
-### Performance Benchmarks
-
-**Targets**:
-- Global importance: <2 seconds for 5,000 samples
-- Local explanation: <1 second per instance
-- Batch explanations (100 instances): <30 seconds
-- Dashboard load: <5 seconds
-
-**Measurement**:
-```python
-import time
-
-def benchmark_global_importance():
-    start = time.time()
-    interpreter.plot_global_importance()
-    elapsed = time.time() - start
-    assert elapsed < 2.0, f"Too slow: {elapsed:.2f}s"
-```
+**Insights**:
+- [ ] Findings align with known patterns in data
+- [ ] Segment differences are explainable
+- [ ] Interactions make logical sense
+- [ ] Performance metrics are accurate
 
 ---
 
-## 11. Open Questions
+### User Verification
 
-### Questions for Review
+**Process**:
+1. User runs each notebook sequentially
+2. Reviews outputs visually
+3. Validates insights against domain knowledge
+4. Provides feedback on unclear results
+5. Iterate on visualizations and explanations
 
-**Q1: Model Support Scope**
-- Should we support deep learning models (e.g., Keras, PyTorch)?
-- **Recommendation**: Start with tree-based + linear, add DL in Phase 4 if needed
-
-**Q2: Interaction Analysis Depth**
-- How deep should we go with interaction effects?
-- **Options**:
-  - Basic: Show top interacting feature for each main feature
-  - Advanced: Full interaction matrix (computationally expensive)
-- **Recommendation**: Start with basic, add advanced as optional
-
-**Q3: Categorical Handling - Encoding Strategy**
-- Should we require one-hot encoding upfront, or handle internally?
-- **Recommendation**: Accept both, auto-detect encoding style
-
-**Q4: Business Narratives - Customization**
-- Should users be able to customize narrative templates?
-- **Recommendation**: Yes - provide default templates + allow custom templates
-
-**Q5: Caching Strategy**
-- Where to store cached SHAP values (memory vs. disk)?
-- **Options**:
-  - Memory only (fast, but lost on restart)
-  - Disk cache (persistent, but slower)
-  - Both (memory with disk fallback)
-- **Recommendation**: Both - memory cache with optional disk persistence
-
-**Q6: What-If Scenario Constraints**
-- Should we validate feasibility of what-if changes?
-  - E.g., prevent setting age=200 or discount=150%
-- **Recommendation**: Yes - add soft warnings for extreme values
-
-**Q7: Report Formats**
-- Which output formats to support?
-- **Options**: HTML, PDF, Markdown, PowerPoint
-- **Recommendation**: HTML (Phase 3), PDF (Phase 4), others if requested
-
-**Q8: Interactive Dashboard - Deployment**
-- Should dashboard be embeddable in other applications?
-- **Recommendation**: Start with standalone, add embedding support later
-
-**Q9: Feature Engineering Integration**
-- Should we support explaining engineered features (e.g., polynomial)?
-- **Recommendation**: Yes, but user must provide feature definitions
-
-**Q10: Comparison Mode**
-- Should we support comparing multiple models' explanations?
-- **Recommendation**: Add in Phase 4 as "model comparison" feature
+**No Unit Tests**: Focus on end-to-end functionality through notebooks, not programmatic tests.
 
 ---
 
-## Appendix A: Configuration Schema
+## Appendix A: Configuration Reference
 
-### Global Configuration
+### Default Configuration
 
 ```python
-from dataclasses import dataclass
-from typing import List, Dict, Optional
-
 @dataclass
-class InterpreterConfig:
-    """Global configuration for interpreter"""
+class Config:
+    """Global configuration for interpreter."""
 
-    # Model settings
-    model_type: str = 'auto'  # 'tree', 'linear', 'auto'
+    # SHAP settings
+    sample_size: int = 2000           # Max samples for SHAP
+    shap_algorithm: str = 'auto'      # 'auto', 'tree', 'kernel'
 
     # Categorical handling
     categorical_features: List[str] = None
-    categorical_encoding: str = 'auto'  # 'auto', 'onehot', 'label'
-
-    # SHAP settings
-    shap_algorithm: str = 'auto'  # 'auto', 'tree', 'kernel', 'linear'
-    shap_n_samples: int = 100  # For kernel explainer
-
-    # Caching
-    enable_cache: bool = True
-    cache_dir: str = '.shap_cache'
+    auto_detect_categorical: bool = True
+    aggregation_method: str = 'sum'   # 'sum', 'mean'
 
     # Visualization
-    default_plot_backend: str = 'plotly'  # 'plotly', 'matplotlib'
-    plot_style: str = 'default'  # 'default', 'presentation', 'technical'
+    top_n_default: int = 10
+    plot_backend: str = 'plotly'      # 'plotly', 'matplotlib'
+    figure_size: Tuple[int, int] = (10, 6)
 
-    # Business translation
-    domain: str = 'generic'  # 'generic', 'credit', 'conversion', 'churn'
-    narrative_detail: str = 'summary'  # 'summary', 'detailed', 'technical'
+    # Validation
+    warn_on_issues: bool = True       # Warn, don't error
+    min_samples_per_segment: int = 30
 
     # Performance
-    n_jobs: int = -1  # Parallel processing
+    n_jobs: int = -1                  # Parallel processing
     verbose: bool = False
+```
+
+### Preset Configurations
+
+```python
+PRESETS = {
+    'quick_summary': Config(
+        sample_size=1000,
+        top_n_default=5,
+        shap_algorithm='tree'
+    ),
+
+    'detailed_analysis': Config(
+        sample_size=2000,
+        top_n_default=15,
+        auto_detect_categorical=True
+    ),
+
+    'segment_focus': Config(
+        sample_size=500,  # Per segment
+        min_samples_per_segment=50,
+        top_n_default=10
+    )
+}
 ```
 
 ---
 
-## Appendix B: API Reference
+## Appendix B: API Quick Reference
 
-### Core API
+### Main Class
 
 ```python
 class ModelInterpreter:
-    """Main interpreter class"""
+    """Main interpretation interface."""
 
     def __init__(
         self,
         model,
-        data: pd.DataFrame,
+        X: pd.DataFrame,
+        y: np.ndarray = None,
         categorical_features: List[str] = None,
-        config: InterpreterConfig = None
+        config: Config = None
     ):
-        """Initialize interpreter with model and data"""
+        """Initialize interpreter."""
 
-    def plot_global_importance(
-        self,
-        top_n: int = 10,
-        plot_type: str = 'bar'
-    ) -> Figure:
-        """Generate global feature importance plot"""
+    # Global analysis
+    def plot_global_importance(self, top_n=10, show_performance=True) -> Figure
+    def plot_feature_distribution(self, feature_name, highlight_value=None) -> Figure
+    def plot_performance_summary(self) -> Figure
 
-    def plot_local_explanation(
-        self,
-        instance_idx: int,
-        plot_type: str = 'waterfall'
-    ) -> Figure:
-        """Generate local explanation for single instance"""
+    # Segment analysis
+    def compare_segments(self, segment_column, segments=None) -> Dict
+    def plot_segment_comparison(self, results, feature=None) -> Figure
+    def plot_segment_heatmap(self, results, top_n=10) -> Figure
 
-    def plot_dependence(
-        self,
-        feature: str,
-        interaction_feature: str = None
-    ) -> Figure:
-        """Generate feature dependence plot"""
+    # Feature analysis
+    def plot_feature_dependence(self, feature, interaction='auto') -> Figure
+    def detect_interactions(self, feature, top_k=3) -> List[str]
 
-    def generate_global_narrative(self) -> str:
-        """Generate text summary of global importance"""
+    # Insights
+    def get_segment_insights(self, segment_results) -> str
+    def summarize_model(self) -> str
 
-    def generate_local_narrative(
-        self,
-        instance_idx: int,
-        detail_level: str = 'summary'
-    ) -> str:
-        """Generate text explanation for single instance"""
-
-    def what_if(
-        self,
-        instance_idx: int,
-        changes: Dict[str, Any]
-    ) -> Dict:
-        """Calculate impact of changing feature values"""
-
-    def generate_report(
-        self,
-        instance_indices: List[int],
-        output_format: str = 'html',
-        output_path: str = None
-    ) -> Dict:
-        """Generate comprehensive report"""
+    @classmethod
+    def from_preset(cls, preset_name, model, X, y=None) -> 'ModelInterpreter'
 ```
 
 ---
 
-## Appendix C: Example Datasets
-
-### Customer Conversion Dataset
-
-**File**: `data/customer_conversion.csv`
-**Rows**: 5,000
-**Features**: 17 (+ target)
-**Target**: Binary (converted: 0/1)
-**Conversion Rate**: 36%
-
-**Feature Types**:
-- **Numeric** (10): pages_viewed, time_on_site_mins, videos_watched, email_opens, session_count, age, previous_courses, account_age_days, days_since_signup, signup_month
-- **Categorical** (7): referral_source, country, occupation, device_type, discount_offered, signup_day_of_week
-
-**Known Patterns**:
-- Engagement drives conversion (strongest effect)
-- Discount has non-linear effect
-- Professional occupation converts best
-- Age shows inverted U-shape
-
-**Purpose**: Perfect for testing categorical handling and business translation
+**END OF SPECIFICATION v2.0**
 
 ---
 
-## Document Control
+## Summary of Changes from v1.0
 
-### Revision History
+### Added ✅
+- Feature distribution plots with context
+- Prediction confidence indicators
+- Model performance integration
+- Enhanced segment analysis
+- Categorical aggregation emphasis
+- Configuration presets
+- Notebook-driven testing
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2025-11-22 | Claude | Initial draft for review |
+### Removed ❌
+- Dashboard components
+- HTML/PDF report generation
+- Extensive validation and error handling
+- LIME integration
+- API/production features
+- Instance-level deep dives
+- Complex class hierarchies
 
-### Review Status
+### Simplified 🎯
+- Focus on global over local
+- Segments over instances
+- Warnings over errors
+- Functions over classes
+- Notebooks over unit tests
 
-- [ ] Technical architecture reviewed
-- [ ] Package dependencies approved
-- [ ] Feature scope confirmed
-- [ ] Implementation phases agreed
-- [ ] Open questions resolved
-
-### Next Steps
-
-1. **Review this specification** - Add comments, questions, feedback
-2. **Resolve open questions** - Make decisions on scope and approach
-3. **Finalize architecture** - Lock down module structure
-4. **Begin Phase 1** - Implement MVP foundation
-
----
-
-## Your Feedback
-
-**Please review and provide feedback on:**
-
-1. **Overall Approach**: Does the architecture make sense?
-2. **Feature Scope**: Are we building the right features? Any missing?
-3. **Categorical Handling**: Is the grouping approach clear and correct?
-4. **Business Translation**: Will the narrative generation meet your needs?
-5. **Visualizations**: Are the proposed charts the right ones?
-6. **Phasing**: Is the implementation timeline realistic?
-7. **Open Questions**: Your answers to the questions in Section 11
-8. **API Design**: Is the usage interface intuitive?
-
-**Add your comments directly to this document or create a separate feedback file.**
-
----
-
-**END OF SPECIFICATION**
+**Result**: Leaner, more focused specification aligned with exploratory analysis goals.
