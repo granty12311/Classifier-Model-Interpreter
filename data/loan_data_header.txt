@@ -1,0 +1,272 @@
+================================================================================
+                          LOAN DATASET HEADER INFORMATION
+================================================================================
+
+DATASET OVERVIEW:
+-----------------
+File Name:        loan.csv
+Total Records:    887,379 rows (including header)
+Total Columns:    74 columns
+File Location:    notebooks/exploratory/loan.csv
+
+================================================================================
+                              COLUMN DEFINITIONS
+================================================================================
+
+LOAN IDENTIFICATION & AMOUNTS:
+-------------------------------
+1.  id                    - Unique loan identifier
+2.  member_id            - Unique member/borrower identifier  
+3.  loan_amnt            - The listed amount of the loan applied for
+4.  funded_amnt          - The total amount committed to that loan
+5.  funded_amnt_inv      - The total amount committed by investors for that loan
+6.  term                 - The number of payments on the loan (36 or 60 months)
+
+INTEREST & PAYMENT:
+-------------------
+7.  int_rate             - Interest rate on the loan
+8.  installment          - The monthly payment owed if the loan originates
+9.  grade                - LC assigned loan grade (A-G)
+10. sub_grade            - LC assigned loan subgrade (A1-G5)
+
+BORROWER INFORMATION:
+---------------------
+11. emp_title            - Job title supplied by the borrower
+12. emp_length           - Employment length in years (<1 year to 10+ years)
+13. home_ownership       - Home ownership status (RENT, OWN, MORTGAGE, etc.)
+14. annual_inc           - Self-reported annual income
+15. verification_status  - Status of income verification (Verified, Not Verified, Source Verified)
+
+LOAN DETAILS:
+-------------
+16. issue_d              - The month the loan was funded
+17. loan_status          - Current status of the loan (Fully Paid, Current, Charged Off, etc.)
+18. pymnt_plan           - Indicates if a payment plan is in place (y/n)
+19. url                  - URL for the LC page with listing data
+20. desc                 - Loan description provided by the borrower
+21. purpose              - Category provided by borrower for loan request
+22. title                - Loan title provided by the borrower
+23. zip_code             - First 3 numbers of zip code
+24. addr_state           - State provided by borrower
+
+CREDIT HISTORY:
+---------------
+25. dti                  - Debt-to-income ratio
+26. delinq_2yrs          - Number of 30+ days delinquencies in past 2 years
+27. earliest_cr_line     - Month the borrower's earliest credit line was opened
+28. inq_last_6mths       - Number of inquiries in past 6 months
+29. mths_since_last_delinq - Months since last delinquency
+30. mths_since_last_record - Months since last public record
+
+ACCOUNT INFORMATION:
+--------------------
+31. open_acc             - Number of open credit lines
+32. pub_rec              - Number of derogatory public records
+33. revol_bal            - Total credit revolving balance
+34. revol_util           - Revolving line utilization rate
+35. total_acc            - Total number of credit lines
+
+LOAN PERFORMANCE:
+-----------------
+36. initial_list_status  - Initial listing status (w=whole, f=fractional)
+37. out_prncp            - Remaining outstanding principal for total amount funded
+38. out_prncp_inv        - Remaining outstanding principal for investors
+39. total_pymnt          - Payments received to date for total amount funded
+40. total_pymnt_inv      - Payments received to date for investors
+41. total_rec_prncp      - Principal received to date
+42. total_rec_int        - Interest received to date
+43. total_rec_late_fee   - Late fees received to date
+44. recoveries           - Post charge off gross recovery
+45. collection_recovery_fee - Post charge off collection fee
+
+PAYMENT TRACKING:
+-----------------
+46. last_pymnt_d         - Last month payment was received
+47. last_pymnt_amnt      - Last total payment amount received
+48. next_pymnt_d         - Next scheduled payment date
+49. last_credit_pull_d   - Most recent month LC pulled credit
+
+ADDITIONAL METRICS:
+-------------------
+50. collections_12_mths_ex_med - Number of collections in 12 months excluding medical
+51. mths_since_last_major_derog - Months since most recent 90-day or worse rating
+52. policy_code          - Publicly available policy code
+53. application_type     - Individual or joint application
+54. annual_inc_joint     - Combined self-reported annual income (joint applications)
+55. dti_joint            - Combined debt-to-income ratio (joint applications)
+56. verification_status_joint - Income verification status for co-borrower
+57. acc_now_delinq       - Number of accounts currently delinquent
+58. tot_coll_amt         - Total collection amounts ever owed
+59. tot_cur_bal          - Total current balance of all accounts
+
+RECENT ACCOUNT ACTIVITY:
+-------------------------
+60. open_acc_6m          - Number of open trades in last 6 months
+61. open_il_6m           - Number of installment accounts opened in past 6 months
+62. open_il_12m          - Number of installment accounts opened in past 12 months
+63. open_il_24m          - Number of installment accounts opened in past 24 months
+64. mths_since_rcnt_il   - Months since most recent installment accounts opened
+65. total_bal_il         - Total current balance of all installment accounts
+66. il_util              - Ratio of total balance to high credit/credit limit on installment accounts
+67. open_rv_12m          - Number of revolving trades opened in past 12 months
+68. open_rv_24m          - Number of revolving trades opened in past 24 months
+69. max_bal_bc           - Maximum current balance owed on all revolving accounts
+70. all_util             - Balance to credit limit on all trades
+71. total_rev_hi_lim     - Total revolving high credit/credit limit
+
+INQUIRIES:
+----------
+72. inq_fi               - Number of personal finance inquiries
+73. total_cu_tl          - Number of finance trades
+74. inq_last_12m         - Number of credit inquiries in past 12 months
+
+================================================================================
+                            SAMPLE DATA (First 5 Records)
+================================================================================
+
+Record 1:
+---------
+Loan ID: 1077501
+Member ID: 1296599  
+Loan Amount: $5,000.00
+Term: 36 months
+Interest Rate: 10.65%
+Grade: B (Sub: B2)
+Employment: 10+ years
+Home: RENT
+Annual Income: $24,000
+Status: Fully Paid
+Purpose: credit_card
+State: AZ
+
+Record 2:
+---------
+Loan ID: 1077430
+Member ID: 1314167
+Loan Amount: $2,500.00
+Term: 60 months
+Interest Rate: 15.27%
+Grade: C (Sub: C4)
+Employment: < 1 year at Ryder
+Home: RENT
+Annual Income: $30,000
+Status: Charged Off
+Purpose: car (bike)
+State: GA
+
+Record 3:
+---------
+Loan ID: 1077175
+Member ID: 1313524
+Loan Amount: $2,400.00
+Term: 36 months
+Interest Rate: 15.96%
+Grade: C (Sub: C5)
+Employment: 10+ years
+Home: RENT
+Annual Income: $12,252
+Status: Fully Paid
+Purpose: small_business (real estate business)
+State: IL
+
+Record 4:
+---------
+Loan ID: 1076863
+Member ID: 1277178
+Loan Amount: $10,000.00
+Term: 36 months
+Interest Rate: 13.49%
+Grade: C (Sub: C1)
+Employment: 10+ years at AIR RESOURCES BOARD
+Home: RENT
+Annual Income: $49,200
+Status: Fully Paid
+Purpose: other (property tax & A/C replacement)
+State: CA
+
+Record 5:
+---------
+Loan ID: 1075358
+Member ID: 1311748
+Loan Amount: $3,000.00
+Term: 60 months
+Interest Rate: 12.69%
+Grade: B (Sub: B5)
+Employment: 1 year at University Medical Group
+Home: RENT
+Annual Income: $80,000
+Status: Current
+Purpose: other (debt consolidation)
+State: OR
+
+================================================================================
+                              DATA CHARACTERISTICS
+================================================================================
+
+LOAN AMOUNTS:
+-------------
+- Range from small personal loans ($2,400) to larger amounts ($10,000+)
+- Funded amounts may differ from requested amounts
+
+LOAN TERMS:
+-----------
+- Two options: 36 months (3 years) or 60 months (5 years)
+
+INTEREST RATES:
+---------------
+- Vary based on grade (7.9% to 21.28% in sample)
+- Higher grades (A) have lower rates, lower grades (F) have higher rates
+
+LOAN GRADES:
+------------
+- Letter grades from A to G
+- Sub-grades provide more granularity (A1-A5, B1-B5, etc.)
+
+LOAN PURPOSES:
+--------------
+Common categories include:
+- credit_card (credit card refinancing)
+- debt_consolidation
+- small_business
+- car
+- wedding
+- other (with specific descriptions)
+
+LOAN STATUS:
+------------
+- Fully Paid: Loan successfully paid off
+- Current: Loan is active and payments up to date
+- Charged Off: Loan defaulted and charged off
+- Various other statuses for different stages
+
+GEOGRAPHIC DISTRIBUTION:
+------------------------
+- Covers multiple US states
+- Zip codes partially masked for privacy (only first 3 digits)
+
+EMPLOYMENT:
+-----------
+- Employment length ranges from <1 year to 10+ years
+- Various employers and job titles included
+
+VERIFICATION:
+-------------
+- Income can be: Not Verified, Source Verified, or Verified
+- Different levels of verification affect loan terms
+
+================================================================================
+                                    NOTES
+================================================================================
+
+1. This is a LendingClub loan dataset containing peer-to-peer lending information
+2. Dataset appears to span from 2011-2016 based on date columns
+3. Contains both successful (Fully Paid) and unsuccessful (Charged Off) loans
+4. Rich feature set for credit risk modeling and analysis
+5. Personal information is partially anonymized (zip codes, URLs)
+6. Many columns have missing values (indicated by empty fields in CSV)
+7. Currency values are in USD
+8. Dates are in Mon-YYYY format
+
+================================================================================
+                              END OF HEADER FILE
+================================================================================

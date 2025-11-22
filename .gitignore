@@ -49,6 +49,9 @@ Thumbs.db
 data/*
 !data/.gitkeep
 !data/README.md
+!data/*.py
+!data/*.md
+!data/*.txt
 
 # Outputs
 outputs/*
