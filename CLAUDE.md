@@ -145,11 +145,71 @@ git commit -m "Update: [describe changes here]"
 git push -u origin main
 ```
 
+### Deployment Workflow (Production Code Release)
+
+**When to deploy:** After significant features are complete and tested
+
+**Steps:**
+
+1. **Commit all changes locally**
+```bash
+cd /home/granty1231/Classifier-Model-Interpreter
+
+# Stage all changes
+git add .
+
+# Commit with descriptive message (use heredoc for multi-line)
+git commit -m "$(cat <<'EOF'
+Update: [Brief description of changes]
+
+[Detailed description of what changed]
+
+Key improvements:
+- [List key improvements]
+- [More improvements]
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+2. **Create/Update prod_code folder**
+```bash
+# Create directory if needed
+mkdir -p prod_code
+
+# Copy source code
+cp -r src prod_code/
+
+# Copy demo notebook
+cp notebooks/demo_all_visualizations.ipynb prod_code/
+
+# Copy requirements
+cp requirements.txt prod_code/
+
+# Create/update README (if needed)
+# See existing prod_code/README.md as template
+```
+
+3. **Commit prod_code changes**
+```bash
+git add prod_code/
+git commit -m "Deploy: Update production code release"
+```
+
+4. **Push to GitHub**
+```bash
+git push origin main
+```
+
 ### Pre-Push Checklist
 
 Before pushing to GitHub, verify:
 - [ ] All changes tested via notebooks with user approval
-- [ ] No notebook outputs committed (notebooks should be clean)
+- [ ] prod_code folder contains: src/, demo_all_visualizations.ipynb, requirements.txt, README.md
+- [ ] prod_code/README.md is up-to-date with latest features
 - [ ] No sensitive data or large data files included
 - [ ] Code follows project conventions and style
 - [ ] Dependencies updated in requirements.txt if needed
