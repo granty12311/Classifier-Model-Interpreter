@@ -25,6 +25,13 @@ from .interaction_plots import (
     plot_interaction_heatmap,
     plot_interaction_matrix
 )
+from .local_plots import (
+    plot_waterfall,
+    plot_force_horizontal,
+    get_observation_explanation,
+    explain_observation_text,
+    plot_multiple_observations
+)
 
 __all__ = [
     'plot_global_importance',
@@ -41,5 +48,10 @@ __all__ = [
     'plot_dependence_categorical',
     'plot_interaction_scatter',
     'plot_interaction_heatmap',
-    'plot_interaction_matrix'
+    'plot_interaction_matrix',
+    'plot_waterfall',
+    'plot_force_horizontal',
+    'get_observation_explanation',
+    'explain_observation_text',
+    'plot_multiple_observations'
 ]

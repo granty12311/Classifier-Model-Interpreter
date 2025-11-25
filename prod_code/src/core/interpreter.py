@@ -47,6 +47,23 @@ from ..analysis.interaction_detection import (
     analyze_interaction,
     compute_interaction_matrix
 )
+from ..analysis.threshold_detection import (
+    detect_thresholds,
+    detect_all_thresholds
+)
+from ..analysis.segment_discovery import (
+    discover_segments,
+    plot_segment_profiles,
+    plot_segment_comparison,
+    get_segment_summary
+)
+from ..visualization.local_plots import (
+    plot_waterfall,
+    plot_force_horizontal,
+    get_observation_explanation,
+    explain_observation_text,
+    plot_multiple_observations
+)
 
 
 class Interpreter:
@@ -810,5 +827,285 @@ class Interpreter:
             condition_feature,
             n_bins=n_bins,
             value_labels=value_labels,
+            **kwargs
+        )
+
+    # ========================================================================
+    # PHASE 3: Advanced Analysis - Thresholds, Segments, Local Explanations
+    # ========================================================================
+
+    def detect_thresholds(
+        self,
+        feature: str,
+        method: str = 'changepoint',
+        min_segment_size: int = 50,
+        significance_level: float = 0.05,
+        max_thresholds: int = 3
+    ) -> Dict:
+        """
+        Detect significant thresholds where feature effect changes.
+
+        Finds values where the feature's impact on predictions shifts significantly.
+        For example: "Discount has minimal effect below 15%, but strong effect above."
+
+        Parameters:
+            feature: Feature name to analyze
+            method: 'changepoint' (statistical) or 'gradient' (slope-based)
+            min_segment_size: Minimum samples on each side of threshold
+            significance_level: p-value threshold for significance
+            max_thresholds: Maximum number of thresholds to return
+
+        Returns:
+            Dictionary with:
+            - 'feature': Feature name
+            - 'thresholds': List of threshold dicts with value, shap_before/after, interpretation
+        """
+        if self.shap_values is None:
+            raise RuntimeError("SHAP values not computed. Call compute_shap() first.")
+
+        return detect_thresholds(
+            self.shap_values,
+            self.X,
+            self.feature_names,
+            feature,
+            method=method,
+            min_segment_size=min_segment_size,
+            significance_level=significance_level,
+            max_thresholds=max_thresholds
+        )
+
+    def detect_all_thresholds(self, top_n_features: int = 10, **kwargs) -> pd.DataFrame:
+        """
+        Detect thresholds for top N most important features.
+
+        Parameters:
+            top_n_features: Number of top features to analyze
+            **kwargs: Arguments passed to detect_thresholds()
+
+        Returns:
+            DataFrame with all detected thresholds sorted by effect magnitude
+        """
+        if self.shap_values is None:
+            raise RuntimeError("SHAP values not computed. Call compute_shap() first.")
+
+        return detect_all_thresholds(
+            self.shap_values,
+            self.X,
+            self.feature_names,
+            top_n_features=top_n_features,
+            **kwargs
+        )
+
+    def discover_segments(
+        self,
+        n_segments: int = 4,
+        method: str = 'kmeans',
+        features_to_use: Optional[List[str]] = None,
+        top_n_features: int = 10,
+        min_segment_size: int = 50
+    ) -> Dict:
+        """
+        Discover segments based on SHAP value patterns.
+
+        Clusters observations by HOW the model explains them (SHAP patterns),
+        not by feature values. This reveals behavioral segments that traditional
+        demographic segmentation misses.
+
+        Parameters:
+            n_segments: Number of segments to discover
+            method: Clustering method ('kmeans' or 'hierarchical')
+            features_to_use: Specific features to cluster on (default: top N)
+            top_n_features: Number of top features if not specified
+            min_segment_size: Minimum samples per segment
+
+        Returns:
+            Dictionary with:
+            - 'segments': List of segment profiles with top drivers
+            - 'segment_labels': Array of segment assignments per observation
+            - 'importance_by_segment': DataFrame comparing importance
+        """
+        if self.shap_values is None:
+            raise RuntimeError("SHAP values not computed. Call compute_shap() first.")
+
+        return discover_segments(
+            self.shap_values,
+            self.X,
+            self.feature_names,
+            y=self.y,
+            n_segments=n_segments,
+            method=method,
+            features_to_use=features_to_use,
+            top_n_features=top_n_features,
+            min_segment_size=min_segment_size
+        )
+
+    def plot_segment_profiles(self, segment_results: Dict, top_n_features: int = 8, **kwargs):
+        """
+        Create visualization comparing discovered segment profiles.
+
+        Parameters:
+            segment_results: Output from discover_segments()
+            top_n_features: Number of features to show
+            **kwargs: Additional arguments (height)
+
+        Returns:
+            Plotly figure
+        """
+        return plot_segment_profiles(segment_results, top_n_features=top_n_features, **kwargs)
+
+    def plot_segment_comparison(self, segment_results: Dict, top_n: int = 10, **kwargs):
+        """
+        Create side-by-side comparison of feature importance across segments.
+
+        Parameters:
+            segment_results: Output from discover_segments()
+            top_n: Number of features to show
+            **kwargs: Additional arguments
+
+        Returns:
+            Plotly figure
+        """
+        return plot_segment_comparison(segment_results, top_n=top_n, **kwargs)
+
+    def get_segment_summary(self, segment_results: Dict) -> str:
+        """
+        Generate text summary of discovered segments.
+
+        Parameters:
+            segment_results: Output from discover_segments()
+
+        Returns:
+            Formatted string summary
+        """
+        return get_segment_summary(segment_results)
+
+    def plot_waterfall(self, observation_idx: int, top_n: int = 10, **kwargs):
+        """
+        Create waterfall chart explaining a single prediction.
+
+        Shows how each feature pushes the prediction from the base value
+        to the final prediction. Essential for individual case explanation.
+
+        Parameters:
+            observation_idx: Index of observation to explain
+            top_n: Number of top features to show (rest grouped as "other")
+            **kwargs: Additional arguments (title, height)
+
+        Returns:
+            Plotly figure
+        """
+        if self.shap_values is None:
+            raise RuntimeError("SHAP values not computed. Call compute_shap() first.")
+
+        return plot_waterfall(
+            self.shap_values,
+            self.X,
+            self.feature_names,
+            self.base_value,
+            observation_idx,
+            top_n=top_n,
+            **kwargs
+        )
+
+    def plot_force(self, observation_idx: int, top_n: int = 10, **kwargs):
+        """
+        Create horizontal force plot for a single prediction.
+
+        Alternative to waterfall - shows positive/negative contributions side by side.
+
+        Parameters:
+            observation_idx: Index of observation to explain
+            top_n: Number of features to show
+            **kwargs: Additional arguments (title, height)
+
+        Returns:
+            Plotly figure
+        """
+        if self.shap_values is None:
+            raise RuntimeError("SHAP values not computed. Call compute_shap() first.")
+
+        return plot_force_horizontal(
+            self.shap_values,
+            self.X,
+            self.feature_names,
+            self.base_value,
+            observation_idx,
+            top_n=top_n,
+            **kwargs
+        )
+
+    def explain_observation(self, observation_idx: int, top_n: int = 10) -> Dict:
+        """
+        Get structured explanation for a single observation.
+
+        Parameters:
+            observation_idx: Index of observation to explain
+            top_n: Number of top features to include
+
+        Returns:
+            Dictionary with base_value, prediction, and feature contributions
+        """
+        if self.shap_values is None:
+            raise RuntimeError("SHAP values not computed. Call compute_shap() first.")
+
+        return get_observation_explanation(
+            self.shap_values,
+            self.X,
+            self.feature_names,
+            self.base_value,
+            observation_idx,
+            top_n=top_n
+        )
+
+    def explain_observation_text(self, observation_idx: int, top_n: int = 5) -> str:
+        """
+        Generate text explanation for an observation.
+
+        Parameters:
+            observation_idx: Index of observation to explain
+            top_n: Number of top features
+
+        Returns:
+            Human-readable explanation string
+        """
+        if self.shap_values is None:
+            raise RuntimeError("SHAP values not computed. Call compute_shap() first.")
+
+        return explain_observation_text(
+            self.shap_values,
+            self.X,
+            self.feature_names,
+            self.base_value,
+            observation_idx,
+            top_n=top_n
+        )
+
+    def plot_multiple_observations(
+        self,
+        observation_indices: List[int],
+        top_n: int = 8,
+        **kwargs
+    ):
+        """
+        Create comparison plot for multiple observations.
+
+        Parameters:
+            observation_indices: List of observation indices to compare
+            top_n: Number of features per observation
+            **kwargs: Additional arguments (height_per_obs)
+
+        Returns:
+            Plotly figure with subplots
+        """
+        if self.shap_values is None:
+            raise RuntimeError("SHAP values not computed. Call compute_shap() first.")
+
+        return plot_multiple_observations(
+            self.shap_values,
+            self.X,
+            self.feature_names,
+            self.base_value,
+            observation_indices,
+            top_n=top_n,
             **kwargs
         )
