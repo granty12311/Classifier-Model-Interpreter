@@ -1,11 +1,11 @@
 """
 Classifier Model Interpreter
 
-A package for interpreting and explaining machine learning classifier models.
+A simple tool for interpreting classifier models using SHAP values.
 """
 
 __version__ = "0.1.0"
 
-from .core import Interpreter, Config, PRESETS
+from .core import Interpreter
 
-__all__ = ['Interpreter', 'Config', 'PRESETS']
+__all__ = ['Interpreter']

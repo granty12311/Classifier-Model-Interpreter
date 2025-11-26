@@ -124,49 +124,65 @@ When executing notebooks for testing:
 
 - **GitHub URL**: https://github.com/granty12311/Classifier-Model-Interpreter
 - **Authentication**: SSH only
+- **IMPORTANT**: Only the `prod_code/` folder is pushed to GitHub. All development happens locally in `src/` and `notebooks/`, then production-ready code is copied to `prod_code/` for deployment.
 
 ### Development Workflow
 
 1. **Make all changes in `src/` directory** during development
 2. **Test using notebooks** (see Testing Strategy section)
 3. **Get user approval** on changes
-4. **Commit and push** to remote
+4. **Deploy to prod_code and push** (see Deployment Workflow below)
 
-### Git Commands for Pushing
+### Deployment Workflow (Push to GitHub)
 
-```bash
-# Stage all changes
-git add .
-
-# Commit with descriptive message
-git commit -m "Update: [describe changes here]"
-
-# Push to GitHub using SSH
-git push -u origin main
-```
-
-### Deployment Workflow (Production Code Release)
-
-**When to deploy:** After significant features are complete and tested
+**IMPORTANT**: Only `prod_code/` folder contents are pushed to GitHub. This keeps the public repo clean with only production-ready code.
 
 **Steps:**
 
-1. **Commit all changes locally**
+1. **Update prod_code folder with latest source code and notebooks**
 ```bash
 cd /home/granty1231/Classifier-Model-Interpreter
 
-# Stage all changes
-git add .
+# Remove old src to ensure clean copy
+rm -rf prod_code/src
+
+# Copy source code (all src/ contents)
+cp -r src prod_code/
+
+# Copy demo/template notebooks (all relevant test/demo notebooks)
+cp notebooks/demo_all_visualizations.ipynb prod_code/
+# Add other template notebooks as needed:
+# cp notebooks/other_notebook.ipynb prod_code/
+
+# Copy requirements
+cp requirements.txt prod_code/
+```
+
+**What to include in prod_code:**
+- `src/` - All source code modules
+- Template/demo notebooks - Notebooks that demonstrate package usage (e.g., `demo_all_visualizations.ipynb`)
+- `requirements.txt` - Package dependencies
+- `README.md` - Documentation for users
+
+**What NOT to include:**
+- Executed notebooks with outputs (e.g., `*_executed.ipynb`)
+- Data files or generated outputs
+- Development-only files
+
+2. **Stage and commit prod_code changes**
+```bash
+# Stage only prod_code folder
+git add prod_code/
 
 # Commit with descriptive message (use heredoc for multi-line)
 git commit -m "$(cat <<'EOF'
-Update: [Brief description of changes]
+Deploy: [Brief description of changes]
 
 [Detailed description of what changed]
 
-Key improvements:
-- [List key improvements]
-- [More improvements]
+Key updates:
+- [List key updates]
+- [More updates]
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -175,31 +191,7 @@ EOF
 )"
 ```
 
-2. **Create/Update prod_code folder**
-```bash
-# Create directory if needed
-mkdir -p prod_code
-
-# Copy source code
-cp -r src prod_code/
-
-# Copy demo notebook
-cp notebooks/demo_all_visualizations.ipynb prod_code/
-
-# Copy requirements
-cp requirements.txt prod_code/
-
-# Create/update README (if needed)
-# See existing prod_code/README.md as template
-```
-
-3. **Commit prod_code changes**
-```bash
-git add prod_code/
-git commit -m "Deploy: Update production code release"
-```
-
-4. **Push to GitHub**
+3. **Push to GitHub**
 ```bash
 git push origin main
 ```
@@ -211,8 +203,7 @@ Before pushing to GitHub, verify:
 - [ ] prod_code folder contains: src/, demo_all_visualizations.ipynb, requirements.txt, README.md
 - [ ] prod_code/README.md is up-to-date with latest features
 - [ ] No sensitive data or large data files included
-- [ ] Code follows project conventions and style
-- [ ] Dependencies updated in requirements.txt if needed
+- [ ] Only prod_code/ is being committed (not local dev files)
 
 ### Common Git Issues
 

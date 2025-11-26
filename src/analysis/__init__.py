@@ -1,15 +1,5 @@
 """
-Analysis modules for interaction detection and advanced interpretation.
+Analysis modules (simplified - most functionality moved to Interpreter class).
 """
 
-from .interaction_detection import (
-    detect_interactions,
-    analyze_interaction,
-    compute_interaction_matrix
-)
-
-__all__ = [
-    'detect_interactions',
-    'analyze_interaction',
-    'compute_interaction_matrix'
-]
+__all__ = []
