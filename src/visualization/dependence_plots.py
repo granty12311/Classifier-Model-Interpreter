@@ -207,15 +207,44 @@ def plot_dependence(
         showlegend=False
     ))
 
+    # Add quadratic trend line
+    if len(feat_vals) > 10:
+        try:
+            # Fit quadratic polynomial
+            coeffs = np.polyfit(feat_vals, shap_vals, 2)
+            poly = np.poly1d(coeffs)
+
+            # Generate smooth x values for the curve
+            x_smooth = np.linspace(feat_vals.min(), feat_vals.max(), 100)
+            y_smooth = poly(x_smooth)
+
+            fig.add_trace(go.Scatter(
+                x=x_smooth,
+                y=y_smooth,
+                mode='lines',
+                line=dict(color='red', width=3),
+                name='Trend',
+                hoverinfo='skip',
+                showlegend=True
+            ))
+        except:
+            pass  # Skip if fitting fails
+
     fig.update_layout(
         title=dict(text=title, x=0.5, xanchor='center'),
         xaxis_title=feature_name,
         yaxis_title=f"SHAP Value",
         height=height,
-        margin=dict(l=50, r=50, t=80, b=50),
+        margin=dict(l=50, r=120, t=80, b=50),
         hovermode='closest',
         plot_bgcolor='white',
-        showlegend=False
+        legend=dict(
+            orientation='h',
+            yanchor='top',
+            y=-0.15,
+            xanchor='right',
+            x=1.0
+        )
     )
 
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
