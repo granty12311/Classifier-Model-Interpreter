@@ -37,7 +37,9 @@ def plot_beeswarm(
     # Calculate feature importance
     importance = np.abs(shap_values).mean(axis=0)
 
-    # Get top features
+    # Get top features (limit to actual number of features available)
+    n_features = len(feature_names)
+    top_n = min(top_n, n_features)
     top_indices = np.argsort(importance)[-top_n:][::-1]
     top_features = [feature_names[i] for i in top_indices]
 
@@ -88,14 +90,17 @@ def plot_beeswarm(
             showlegend=False
         ))
 
+    # Number of features actually displayed
+    num_displayed = len(top_features)
+
     fig.update_layout(
         title=dict(text=title, x=0.5, xanchor='center'),
         xaxis_title="SHAP Value (impact on model output)",
         yaxis=dict(
             tickmode='array',
-            tickvals=list(range(top_n)),
+            tickvals=list(range(num_displayed)),
             ticktext=top_features,
-            range=[-0.5, top_n - 0.5]
+            range=[-0.5, num_displayed - 0.5]
         ),
         height=height,
         margin=dict(l=200, r=50, t=80, b=50),
@@ -232,15 +237,16 @@ def plot_dependence(
         xaxis_title=feature_name,
         yaxis_title=f"SHAP Value",
         height=height,
-        margin=dict(l=50, r=50, t=80, b=50),
+        margin=dict(l=50, r=100, t=80, b=50),
         hovermode='closest',
         plot_bgcolor='white',
         legend=dict(
-            orientation='h',
+            orientation='v',
             yanchor='top',
-            y=1.15,
-            xanchor='center',
-            x=0.5
+            y=0.99,
+            xanchor='left',
+            x=1.02,
+            bgcolor='rgba(255,255,255,0.8)'
         )
     )
 
