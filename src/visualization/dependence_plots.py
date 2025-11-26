@@ -207,47 +207,15 @@ def plot_dependence(
         showlegend=False
     ))
 
-    # Add smoothed trend line
-    if len(feat_vals) > 10:
-        from scipy.ndimage import gaussian_filter1d
-
-        # Sort by feature value
-        sort_idx = np.argsort(feat_vals)
-        feat_sorted = feat_vals[sort_idx]
-        shap_sorted = shap_vals[sort_idx]
-
-        # Smooth
-        try:
-            shap_smooth = gaussian_filter1d(shap_sorted, sigma=max(2, len(feat_vals) // 50))
-
-            fig.add_trace(go.Scatter(
-                x=feat_sorted,
-                y=shap_smooth,
-                mode='lines',
-                line=dict(color='red', width=3),
-                name='Trend',
-                hoverinfo='skip',
-                showlegend=True
-            ))
-        except:
-            pass  # Skip if smoothing fails
-
     fig.update_layout(
         title=dict(text=title, x=0.5, xanchor='center'),
         xaxis_title=feature_name,
         yaxis_title=f"SHAP Value",
         height=height,
-        margin=dict(l=50, r=100, t=80, b=50),
+        margin=dict(l=50, r=50, t=80, b=50),
         hovermode='closest',
         plot_bgcolor='white',
-        legend=dict(
-            orientation='v',
-            yanchor='top',
-            y=0.99,
-            xanchor='left',
-            x=1.02,
-            bgcolor='rgba(255,255,255,0.8)'
-        )
+        showlegend=False
     )
 
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
